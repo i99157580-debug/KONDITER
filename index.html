@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цифровая Экспертно-Оценочная Система — ПМ.01</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22;
+            --success: #27ae60;
+            --bg: #f8f9fa;
+            --text: #333;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); line-height: 1.6; }
+        
+        header { background: linear-gradient(135deg, var(--primary), #34495e); color: white; padding: 25px 20px; text-align: center; box-shadow: var(--shadow); position: relative; }
+        header h1 { font-size: 22px; margin-bottom: 5px; }
+        header p { font-size: 13px; opacity: 0.9; }
+        
+        .badge-container { display: flex; justify-content: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+        .badge { background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 11px; border: 1px solid rgba(255,255,255,0.3); }
+
+        .teacher-login-btn { position: absolute; top: 20px; right: 20px; background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; z-index: 100; }
+
+        #authOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(44, 62, 80, 0.95); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .auth-card { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: var(--shadow); text-align: center; }
+        .auth-card h3 { color: var(--primary); margin-bottom: 15px; }
+        .auth-card input, .auth-card select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .auth-card button { background: var(--success); color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px; }
+
+        .container { max-width: 1200px; margin: 25px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 2fr; gap: 25px; }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+
+        .sidebar { background: white; padding: 20px; border-radius: 12px; box-shadow: var(--shadow); height: fit-content; }
+        .sidebar h2 { font-size: 17px; margin-bottom: 15px; color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 5px; }
+        
+        .topic-list { list-style: none; max-height: 750px; overflow-y: auto; }
+        .topic-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; border-radius: 6px; font-size: 13px; margin-bottom: 4px; color: #555; }
+        .topic-item:hover { background-color: #f0f3f4; color: var(--accent); }
+        .topic-item.active { background-color: var(--primary); color: white; font-weight: bold; }
+        .topic-item.filled { border-left: 4px solid var(--success); background-color: #f4faf6; font-weight: 500; color: #1e6b39; }
+        .topic-item.filled.active { background-color: var(--primary); color: white; border-left: 4px solid var(--accent); }
+
+        .main-content { background: white; padding: 25px; border-radius: 12px; box-shadow: var(--shadow); }
+        .section-title { color: var(--primary); margin-bottom: 15px; font-size: 20px; border-bottom: 3px solid var(--accent); padding-bottom: 6px; }
+        
+        .info-card { background: #fdfefe; border: 1px solid #e5e8e8; padding: 15px; margin-bottom: 12px; border-radius: 8px; }
+        .info-card h4 { color: var(--primary); margin-bottom: 6px; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+        .info-card p, .info-card ul { font-size: 13.5px; color: #444; white-space: pre-line; }
+        .info-card ul { list-style-position: inside; padding-left: 3px; }
+        
+        .criteria-box { background: #fffcf4; border-left: 5px solid var(--accent); }
+        .criteria-box h4 { color: #b76e23; }
+        .tech-box { border-left: 5px solid #3498db; background: #f4f9fd; }
+        .tech-box h4 { color: #2980b9; }
+        .task-box { border-left: 5px solid #9b59b6; background: #faf5fc; }
+        .task-box h4 { color: #8e44ad; }
+
+        .link-btn { display: inline-block; background: var(--primary); color: white; padding: 8px 14px; border-radius: 4px; text-decoration: none; font-size: 12.5px; margin-top: 5px; transition: 0.2s; font-weight: 600; text-align: center; border: 1px solid transparent; }
+        .link-btn:hover { background: var(--accent); }
+        .link-btn.video-btn { background: #e74c3c; }
+        .link-btn.video-btn:hover { background: #c0392b; }
+        .link-btn.task-btn { background: #27ae60; }
+        .link-btn.task-btn:hover { background: #219653; }
+
+        .eval-panel { background: #fdfefe; border: 1px solid #d6dbdf; border-radius: 8px; padding: 18px; margin-top: 20px; }
+        .eval-panel h3 { font-size: 16px; margin-bottom: 12px; color: var(--primary); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        
+        .score-row { display: grid; grid-template-columns: 3fr 1fr 1fr; gap: 10px; margin-bottom: 10px; align-items: center; border-bottom: 1px dashed #f0f0f0; padding-bottom: 6px; }
+        .score-row label { font-size: 13px; color: #333; }
+        .score-row .max-lbl { font-size: 11px; color: #7f8c8d; text-align: center; background: #eef2f3; padding: 2px 4px; border-radius: 4px; font-weight: 600; }
+        .score-row input[type="number"] { width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 13px; font-weight: bold; color: var(--primary); }
+
+        .result-box { background: var(--primary); color: white; padding: 15px; border-radius: 8px; text-align: center; margin-top: 15px; display: grid; grid-template-columns: 1fr 2.5fr; align-items: center; gap: 10px; }
+        .score-display { font-size: 38px; font-weight: bold; color: var(--accent); }
+        .feedback-text { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; font-size: 13px; font-style: italic; text-align: left; }
+
+        .quiz-container { background: #f4faf6; border: 1px solid #c2e0c6; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        .quiz-title { font-size: 14px; font-weight: bold; color: #1e6b39; margin-bottom: 8px; }
+        .quiz-option { display: block; background: white; border: 1px solid #dcdcdc; padding: 8px; margin-bottom: 5px; border-radius: 4px; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .quiz-option:hover { background: #eef7f1; border-color: var(--success); }
+
+        .btn-submit { background: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 12px; transition: 0.2s; }
+        .btn-submit:hover { background: #219653; }
+
+        #teacherCabinetLayout { display: none; background: white; padding: 25px; border-radius: 12px; box-shadow: var(--shadow); margin-top: 25px; }
+        .journal-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+        .journal-table th, .journal-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .journal-table th { background-color: var(--primary); color: white; }
+        .journal-table tr:nth-child(even) { background-color: #f9f9f9; }
+        .user-info-display { font-weight: bold; color: var(--accent); margin-bottom: 15px; font-size: 14px; text-align: right; }
+    </style>
+</head>
+<body>
+
+<div id="authOverlay">
+    <div class="auth-card">
+        <h3>Вход в систему ПМ.01</h3>
+        <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 15px;">Лисаковский технический колледж</p>
+        <input type="text" id="studentFIO" placeholder="Введите ваше ФИО (Обязательно)" required>
+        <select id="studentGroup">
+            <option value="" disabled selected>Выберите учебную группу</option>
+            <option value="1,АС-24">1,АС-24</option>
+            <option value="1,ПО-24">1,ПО-24</option>
+        </select>
+        <button onclick="authenticateStudent()">Войти в практикум</button>
+    </div>
+</div>
+
+<header>
+    <h1>Цифровая Экспертно-Оценочная Система ПМ.01</h1>
+    <p>Регистрационный номер ОП: 101303-199-7211-24 | КГКП «Лисаковский технический колледж» | Разработчик: Горбанёва И.Ю.</p>
+    <div class="badge-container">
+        <div class="badge">Раздел 4.5: Оценочная деятельность и обратная связь</div>
+        <div class="badge">Автоматический трекинг результатов</div>
+        <div class="badge">Кабинет преподавателя (База данных)</div>
+    </div>
+    <button class="teacher-login-btn" onclick="toggleTeacherCabinet()">🔐 Кабинет преподавателя</button>
+</header>
+
+<div class="container" id="mainLayout">
+    <div class="sidebar">
+        <h2>Практические уроки ПМ.01</h2>
+        <ul class="topic-list" id="topicList"></ul>
+    </div>
+
+    <div class="main-content">
+        <div id="userInfoDisplay" class="user-info-display"></div>
+        <h2 id="mainTitle" class="section-title">Выберите тему занятия из списка для демонстрации работы</h2>
+        
+        <div id="contentArea" style="display: none;">
+            
+            <div class="info-card criteria-box">
+                <h4>🎯 Цели и измеряемые критерии занятия:</h4>
+                <ul id="criteriaList"></ul>
+            </div>
+
+            <div class="info-card tech-box">
+                <h4>📖 Технологическая карта (Расход сырья на партию):</h4>
+                <p id="techCardContent"></p>
+            </div>
+
+            <div class="info-card task-box">
+Используйте код с осторожностью.
+💡 Пошаговая технология приготовления:
+
+🔗 Ссылки на видео-инструкции и КИМ:
+
+✏️ Интерактивный КИМ: Блиц-контроль знаний по текущей теме
+
+
+📊 Цифровой оценочный лист (Максимум 100 баллов)
+0 / 100
+Итого:
+0
+
+Заполните поля оценочных индикаторов...
+Зафиксировать результаты в цифровой журнал
+📋 Электронный журнал успеваемости (База данных ЛТК)
+Выйти из кабинета
+
+Сюда автоматически выгружаются данные авторизованных студентов, точный балл, вердикт системы, дата и время отправки.
+
+ФИО студента
+	Группа
+	Тема занятия
+	Балл (из 100)
+	Экспертное заключение
+	Дата прохождения
+	Время
+
+let currentStudentFIO = "";
+let currentStudentGroup = "";
+function authenticateStudent() {
+const fio = document.getElementById('studentFIO').value.trim();
+const group = document.getElementById('studentGroup').value;
+if (!fio) { alert('❌ Пожалуйста, введите ваше ФИО!'); return; }
+if (!group) { alert('❌ Пожалуйста, выберите учебную группу!'); return; }
+currentStudentFIO = fio;
+currentStudentGroup = group;
+document.getElementById('authOverlay').style.display = 'none';
+document.getElementById('userInfoDisplay').innerText = 👤 Студент: ${currentStudentFIO} | Группа: ${currentStudentGroup};
+}
+const topicsData = [
+{
+id: 1,
+title: "1. Вводный инструктаж. Техника безопасности в цехе",
+criteria: ["Понимает принцип организации рабочего места согласно регламентам РК", "Проводит санитарно-гигиеническую обработку рук, инвентаря и оборудования"],
+techCard: "Нормативно-технические инструкции СанПиН Республики Казахстан №224 от 2022 года. Регламенты безопасной эксплуатации кухонных цехов.",
+task: "Изучить схему эвакуации цеха, пройти первичный инструктаж, отработать мытье рук по 6-этапной системе ВОЗ.",
+links: [
+{ name: "🧩 Задание: Ввод. Тесто (LearningApps)", url: "learningapps.org" },
+{ name: "📋 Онлайн-тест модуля (Examica)", url: "examica.io" }
+]
+},
+{
+id: 2,
+title: "2. ПР №2: Пончики из дрожжевого теста (Рецептура №799)",
+criteria: ["Соблюдает технологию замеса безопарного дрожжевого теста", "Владеет приемами формования пончиков-колец и безопасной жарки во фритюре"],
+techCard: "ТЕСТО: Мука — 265г, Сахар — 30г, Маргарин — 15г, Меланж — 10г, Соль — 4г, Дрожжи — 4г, Вода — 155г. Масса теста: 450г.\nФРИТЮР: Растительное масло — 300г.\nДЕКОР: Сахарная пудра — 3г, молочный шоколад.",
+task: "1. Сделать опару (активация дрожжей 15 мин). Замесить мягкое эластичное тесто, добавить маргарин комнатной температуры. Расстойка 1 час.\n2. Поделить на 10 частей (шарики по 40-45г). Вырезать серединку (диаметр 6-6.5 см). Расстойка 15 мин на пергаменте.\n3. Разогреть фритюр, обжарить с двух сторон до золотистого цвета. Выложить на бумагу, декорировать пудрой или шоколадом.",
+links: [
+{ name: "🎬 Видео-рецепт пончиков (YouTube)", url: "youtube.com" }
+],
+quiz: {
+q: "О чем говорит появление светлого кольца вокруг пончика при обжаривании во фритюре?",
+a: ["Тесто расстоялось достаточно, внутри накопилось много газов", "Масло для фритюра было перегрето", "В тесте не хватило сахара для колеровки", "Использовалась холодная опара"],
+correct: 0
+}
+},
+{
+id: 3,
+title: "3. ПР №3: Самса из сдобного пресного теста «Тюльпан»",
+criteria: ["Умеет готовить сдобное пресное тесто методом перетирания маргариновой крошки", "Формует самсу конусообразным способом («Тюльпан»)"],
+techCard: "ТЕСТО: Мука — 250г, Маргарин столовый — 100г, Сметана — 100г, Желток — 1шт, Соль — 1/2 ч.л., Разрыхлитель — 1/2 ч.л. Выход: 450г.\nНАЧИНКА: Фарш — 200г, Лук — 2шт, Картофель — 2шт, соль, специи. Выход: 300г.",
+task: "1. В муку натереть маргарин, сделать крошку. Добавить соль, разрыхлитель, сметану, желток. Замесить тесто, убрать в холодильник на 15 мин.\n2. Нарезать картофель и лук мелким кубиком, смешать с мясным фаршем и специями.\n3. Разделить тесто на 10 кусков по 45г. Раскатать в круг, выложить 30г начинки, разрезать до середины, скрутить в кулёчек по кругу (пирамидка конусом вверх), залепить дно. Смазать меланжем, посыпать кунжутом. Выпекать при 180-190°С 30-35 минут.",
+links: [
+{ name: "🧩 Тренажер: Виды теста по способу приготовления (LearningApps)", url: "learningapps.org" }
+]
+},
+{
+id: 4,
+title: "4. ПР №4: Изделия из дрожжевого теста «Ватрушки с творогом»",
+criteria: ["Рационально организовывает рабочее место по кондитерскому цеху", "Применяет блендер для создания однородной творожной текстуры без комков"],
+techCard: "ТЕСТО (на 10 шт): Мука — 300г, Молоко — 150г, Маргарин столовый — 50г, Соль — 1/2 ч.л., Дрожжи — 7г, Яйцо — 1шт. Выход теста: 550г.\nНАЧИНКА: Творог — 250г, Желток — 1шт, Сахар — 30г, Соль — 1 щепотка, Ванилин, Крахмал кукурузный — 1 ч.л. Выход: 300г.",
+task: "1. Приготовить опару. Замесить тесто, постепенно вводя маргарин. Расстойка 1 час с обминками.\n2. Начинка: Смешать творог, желток, sugar, ванилин, крахмал. Тщательно пробить блендером до пастообразного состояния.\n3. Поделить на 10 шариков по 50-55г. Расстойка 15 мин на противне. Сделать углубление донышком стакана, выложить творог, смазать меланжем. Выпекать при 180-190°С 20-30 минут.",
+links: [
+{ name: "🧩 Тренажер: Виды теста по способу приготовления (LearningApps)", url: "learningapps.org" }
+],
+quiz: {
+q: "Каким кухонным инвентарем необходимо воспользоваться для быстрого устранения комков в творожной начинке?",
+a: ["Погружным блендером", "Венчиком", "Сликером", "Планетарным миксером на малых оборотах"],
+correct: 0
+}
+},
+{
+id: 7,
+title: "7. ПР №7: Бисквитно-шоколадный пирог «Стеганое одеяло»",
+criteria: ["Владеет приемами чистого отделения белков от желтков и взбивания до устойчивых пиков", "Работает с кондитерским мешком для создания аккуратной творожной решетки"],
+techCard: "БИСКВИТ: Мука — 180г, Яйцо С1 — 4шт (160г), Молоко — 100г, Растительное масло — 100г, Какао-порошок — 30г, Сахар — 150г, Разрыхлитель — 5г. Выход: 725г.\nНАЧИНКА: Творог — 400г, Сахар — 100г, Крахмал кукурузный — 1 ст.л., Яйцо — 1шт, ванилин. Выход: 550г.",
+task: "1. Начинка: Творог, сахар, яйцо, ванилин и крахмал пробить блендером до гладкости. Переложить в кондитерский мешок.\n2. Бисквит: Отделить белки от желтков. Взбить белки с 75г сахара до устойчивых пиков. Желтки взбить с 75г сахара, добавить масло, молоко, затем мучную смесь с какао. Аккуратно ввести белки. Выложить в форму.\n3. Формование: Отрезать кончик кондитерского мешка на 1 см. Нанести поверх жидкого теста аккуратную решетку из творожной массы. Выпекать при 180°С 40-45 минут.",
+links: [
+{ name: "🎬 Смотреть технологию приготовления пирога (YouTube)", url: "youtube.com" },
+{ name: "🧩 Игра: Кондитерские изделия (LearningApps)", url: "learningapps.org" }
+],
+quiz: {
+q: "Почему бисквитное шоколадное тесто нельзя вымешивать слишком длительное время?",
+a: ["Разрушаются пузырьки воздуха, тесто затянется и пирог станет плотным/резиновым", "Какао-порошок начнет горчить", "Мука изменит цвет", "Произойдет расслоение растительного масла"],
+correct: 0
+}
+},
+{
+id: 11,
+title: "11. ПР №11: Булочки с начинкой и штрейзелем / ягодным кули",
+criteria: ["Умеет готовить кондитерскую крошку штрейзель из холодного сливочного масла", "Соблюдает технологию уваривания и загущения ягодной начинки крахмалом"],
+techCard: "ТЕСТО: Мука — 550г, Молоко — 250г, Сливочное масло — 80г, Сахар — 60г, Дрожжи — 8г, Яйцо — 1шт + 1 белок (60г), соль.\nШТРЕЙЗЕЛЬ: Мука — 50г, Сахар — 50г, Масло холодное — 50г.\nЯГОДНАЯ НАЧИНКА: Замороженные ягоды — 150г, Сахар — 50г, Крахмал — 1 ч.л., вода — 15г.\nНАЧИНКА 2: Вареная сгущенка — 60г.",
+task: "1. Приготовить опарное тесто. Дать подойти 1 час с обминкой.\n2. Штрейзель: Смешать муку, сахар и холодное масло, быстро перетереть руками в крошку.\n3. Ягоды уварить с сахаром, ввести разведенный в воде крахмал, загустить на медленном огне. Охладить.\n4. Поделить тесто по 50г, подкатать в шарики. Сделать лепешку руками, выложить начинку, закатать в шар. Расстойка 15 мин, смазать желтком, засыпать штрейзелем. Выпекать при 180°С 20 минут.",
+links: [
+{ name: "📋 Онлайн-тест модуля (Examica)", url: "examica.io" }
+]
+},
+{
+id: 13,
+title: "13. ПР №13: Изделия из дрожжевого слоеного теста «Круассаны»",
+criteria: ["Демонстрирует навыки послойного прослаивания дрожжевого теста мягким маслом", "Выдерживает точные температурные режимы охлаждения пластов в холодильнике (30-45 минут)"],
+techCard: "ТЕСТО: Мука — 400г, Молоко — 250г, Сливочное масло — 20г, Сахар — 2 ст.л., Дрожжи — 8г, Соль — 5г. Выход: 720г.\nПРОСЛАИВАНИЕ: Сливочное масло 82% — 140г.\nНАЧИНКА: Вареная сгущенка — 60г.",
+task: "1. Замесить мягкое тесто. Разделить на 10 шариков по 60г, расстойка 10 мин.\n2. Раскатать в лепешки (2-3 мм). Уложить стопкой, промазывая каждую 1 ч.л. мягкого масла (не доходя до края 1 см). Накрыть пленкой, убрать в холодильник на 30-45 мин.\n3. Раскатать охлажденную стопку в большой круг 5мм. Разрезать на 12 треугольников. Выложить сгущенку, сворачивать рулетом от основания. Расстойка 20 мин, смазать меланжем. Выпекать при 200°С 5 минут, затем при 160°С еще 15 минут.",
+links: [
+{ name: "🎬 Видеоурок по замесу и формованию круассанов (YouTube)", url: "youtube.com" },
+{ name: "📋 Онлайн-тест: Дрожжевое слоеное тесто (OnlineTestPad)", url: "examica.io" }
+],
+quiz: {
+q: "Каково ключевое отличие дрожжевого слоеного теста от классического бездрожжевого слоеного теста?",
+a: ["Дрожжевое содержит меньше масла (до 45%), дает более пышный мякиш и хранится в заморозке меньше (до 1 месяца)", "Дрожжевое содержит до 75% масла и раскатывается строго 256 раз", "Дрожжевое тесто не требует расстойки перед выпеканием", "Дрожжевое тесто поднимается исключительно за счет паров лимонного сока"],
+correct: 0
+}
+},
+{
+id: 17,
+title: "17. ПР №17: Кондитерские изделия «Кейк-попсы» на палочке",
+criteria: ["Умеет измельчать выпеченный бисквит в однородную крошку без крупных кусков", "Работает с шоколадной глазурью методом импульсного плавления по 15 секунд"],
+techCard: "БИСКВИТ: Мука — 120г, Сахар — 150г, Яйцо — 5 шт., Какао — 30г. Выход: 300г.\nКРЕМ МАСЛЯНЫЙ: Масло сливочное — 100г, Сгущенное молоко — 150г. Выход: 250г.\nГЛАЗУРЬ И ДЕКОР: Шоколад — 100г, Сливочное масло — 30г, кондитерские посыпки, палочки.",
+task: "1. Испечь бисквит при 180°С (30 мин), охладить, измельчить скалкой в мелкую крошку.\n2. Крем: Взбить зачищенное масло добела, порциями ввести сгущенку. Смешать крошку с кремом. Скатать шарики по 30г, вставить палочки, заморозить.\n3. Глазурь растопить в микроволновке импульсами по 15 сек. Окунуть каждый шарик, украсить посыпками, охладить до застывания.",
+links: [
+{ name: "🎬 Видеоинструкция: Формование кейк-попсов (YouTube)", url: "youtube.com" }
+],
+quiz: {
+q: "Какое классическое советское пирожное является близким технологическим аналогом американских кейк-попсов?",
+a: ["Пирожное «Картошка»", "Заварное кольцо с творогом", "Слоёная трубочка с кремом", "Песочное пирожное «Полоска»"],
+correct: 0
+}
+},
+{
+id: 18,
+title: "18. ПР №18: Пирожное нарезное «Медовик» со сметанным кремом",
+criteria: ["Контролирует температуру нагрева медово-яичной основы на плите до 75°C для получения карамельного цвета", "Применяет погружной блендер для эмульгирования и придания однородности карамели"],
+techCard: "МЕДОВОЕ ТЕСТО: Мука — 350г, Сахар — 150г, Яйцо — 2шт., Сода — 1 ч.л., Мед — 60г, Сливочное масло 82% — 130г. Выход: 700г.\nСМЕТАННЫЙ КРЕМ: Сметана — 150г, Сахар — 75г, Сливки — 125г.\nМОЛОЧНАЯ КАРАМЕЛЬ: Сахар — 150г, Сливочное масло — 50г, Горячее молоко — 75г. Выход: 250г.",
+task: "1. Тесто: В сотейнике растопить сахар, мед, масло. Ввести яйца. Нагреть до 75°С до янтарного цвета. Снять, ввести соду. Остудить до 40°С, замесить с мукой. Стабилизация в холодильнике 40 мин. Разделить на порции по 20г, тонко раскатать, печь при 180°С 7-8 минут.\n2. Карамель: Растопить сахар порциями (не мешать!). Добавить масло комнатной температуры, влить горячее молоко. Остудить, пробить блендером.\n3. Собрать открытые пирожные с помощью кондитерского мешка, чередуя коржи, крем и карамель. Украсить шоколадом.",
+links: [
+{ name: "📋 Пошаговый фото-рецепт и калькулятор Медовика", url: "russianfood.com" },
+{ name: "🧩 Игра: Классификация кондитерского теста (LearningApps)", url: "learningapps.org" },
+{ name: "🧩 Игра: Различия песочного и заварного теста (LearningApps)", url: "learningapps.org" }
+],
+quiz: {
+q: "Какую критическую ошибку можно допустить при варке домашней молочной карамели, если влить в растопленный сахар холодное молоко вместо горячего?",
+a: ["Сахар мгновенно кристаллизуется и схватится жесткими комками, которые невозможно растворить в гладкую карамель", "Карамель станет слишком темной и горькой", "Молоко мгновенно скиснет", "Разрушится структура сотейника"],
+correct: 0
+}
+},
+{
+id: 20,
+title: "20. СРСП: Песочные корзиночки (тарталетки) с начинками",
+criteria: ["Организовывает рабочее место, подбирает инвентарь (весы, пекарский шкаф, миксер)", "Владеет приемами замеса песочного теста на ледяном масле и формования"],
+techCard: "ПЕСОЧНОЕ ТЕСТО (на 12 шт по 35г): Мука — 220г, Сахарная пудра — 60г, Желтковая часть — 3 шт, Сливочное масло 82% — 110г, Разрыхлитель — 1 ч.л.\nИТАЛЬЯНСКАЯ МЕРЕНГА: Белок — 3 шт (100г), Сахар — 200г, Вода — 50г, Лимонная кислота, соль — по щепотке.",
+task: "1. Песочная основа: Ледяное масло натереть на терке, перетереть с мукой в крошку. Добавить желтки, пудру, разрыхлитель. Замесить тесто, убрать в холодильник на 30 мин. Распределить по формочкам, выпекать при 180°С 10-12 мин.\n2. Итальянская меренга: Из сахара и воды сварить сироп до 118°С. Параллельно взбить белки с солью. Тонкой струйкой влить кипящий сироп во взбивающиеся белки, добавить лимонную кислоту и взбивать до плотных пиков.\n3. Декор: Выложить на дно начинку, отсадить шапочку меренги. Кондитерской горелкой слегка карамелизовать крем до золотистых опалин.",
+links: [
+{ name: "🎬 Видеоурок: Замес и карамелизация корзинок (YouTube)", url: "youtube.com" },
+{ name: "🧩 Кроссворд: Слоеное и песочное тесто (OnlineTestPad)", url: "learningapps.org" }
+],
+quiz: {
+q: "До какой целевой температуры необходимо уваривать сахарный сироп для безопасной итальянской меренги?",
+a: ["118 °C (стадия мягкого шарика)", "100 °C (стадия закипания воды)", "140 °C (стадия твердого карамельного хруста)", "85 °C (стадия пастеризации)"],
+correct: 0
+}
+}
+];
+const filledIds =;
+for (let i = 1; i <= 20; i++) {
+if (!topicsData.find(t => t.id === i)) {
+topicsData.push({
+id: i,
+title: ${i}. Практическое занятие (Модуль ПМ.01),
+criteria: ["Организовывает рабочее место", "Применяет сборники рецептур и ТК РК"],
+techCard: "Рецептурные компоненты и ТТК находятся в цифровой базе Лисаковского технического колледжа.",
+task: "Выполнить подготовку рабочего места, произвести расчет сырья согласно СТК.",
+links: [{ name: "Базовый тренажер темы (LearningApps)", url: "https://learningapps.org" }]
+});
+}
+}
+topicsData.sort((a,b) => a.id - b.id);
+const topicListEl = document.getElementById('topicList');
+topicsData.forEach((topic) => {
+const li = document.createElement('li');
+li.className = 'topic-item';
+if(filledIds.includes(topic.id)) li.classList.add('filled');
+li.innerText = topic.title;
+li.onclick = () => selectTopic(topic, li);
+topicListEl.appendChild(li);
+});
+const maxLimits = { 1:5, 2:10, 3:10, 4:10, 5:20, 6:10, 7:5, 8:10, 9:10, 10:10 };
+const labels = {
+1: "1. Спецодежда, сменная обувь, соответствие СанПиН в течение всей смены",
+2: "2. Санитарная обработка рук, посуды и рабочего инвентаря перед началом",
+3: "3. Рациональная организация рабочего места (подбор весов, инвентаря, досок СО/СМ)",
+4: "4. Соблюдение ТБ с ножами, печью, фритюром, бережное энергопотребление",
+5: "5. Соблюдение последовательности рецептуры (точное следование этапам ТК)",
+6: "6. Рациональный, экономичный расход кондитерского сырья (нет перерасхода)",
+7: "7. Соблюдение температурных графиков выпекания или жарки во фритюре",
+8: "8. Соответствие готового изделия требованиям качества (Органолептика)",
+9: "9. Санитарное состояние стола до, во время и после окончания смены (Clear as you go)",
+10: "10. Самостоятельное выполнение задания с жестким соблюдением временного режима"
+};
+const scoringForm = document.getElementById('scoringForm');
+for(let i=1; i<=10; i++) {
+scoringForm.innerHTML += `
+${labels[i]}
+max: ${maxLimits[i]} б.
+
+`;
+}
+let activeTopicTitle = "";
+function selectTopic(topic, element) {
+document.querySelectorAll('.topic-item').forEach(el => el.classList.remove('active'));
+element.classList.add('active');
+document.getElementById('mainTitle').innerText = topic.title;
+activeTopicTitle = topic.title;
+const criteriaList = document.getElementById('criteriaList');
+criteriaList.innerHTML = '';
+topic.criteria.forEach(crit => {
+const li = document.createElement('li');
+li.innerText = crit;
+criteriaList.appendChild(li);
+});
+document.getElementById('techCardContent').innerHTML = topic.techCard;
+document.getElementById('taskContent').innerHTML = topic.task;
+const linksDiv = document.getElementById('linksContent');
+linksDiv.innerHTML = '';
+topic.links.forEach(link => {
+const a = document.createElement('a');
+a.href = link.url;
+a.target = "_blank";
+a.className = "link-btn";
+if (link.name.includes("🎬")) a.classList.add('video-btn');
+if (link.name.includes("🧩") || link.name.includes("📋")) a.classList.add('task-btn');
+a.style.marginRight = "10px";
+a.innerText = link.name;
+linksDiv.appendChild(a);
+});
+const quizBlock = document.getElementById('quizBlock');
+if (topic.quiz) {
+quizBlock.style.display = 'block';
+document.getElementById('quizQuestion').innerText = topic.quiz.q;
+const optionsDiv = document.getElementById('quizOptions');
+optionsDiv.innerHTML = '';
+topic.quiz.a.forEach((opt, idx) => {
+optionsDiv.innerHTML += <button class="quiz-option" onclick="checkQuizAnswer(${idx}, ${topic.quiz.correct}, this)">${opt}</button>;
+});
+} else {
+quizBlock.style.display = 'none';
+}
+document.getElementById('contentArea').style.display = 'block';
+resetInputs();
+}
+function checkQuizAnswer(selected, correct, element) {
+if (selected === correct) {
+element.style.background = '#27ae60';
+element.style.color = 'white';
+alert('🎉 Правильно! Теоретическая база и знание физико-химических процессов подтверждены.');
+} else {
+element.style.background = '#c0392b';
+element.style.color = 'white';
+alert('❌ Неверно. Обратитесь к Сборнику ТК для повторения теории.');
+}
+}
+function resetInputs() {
+for(let i=1; i<=10; i++) { document.getElementById('ind' + i).value = 0; }
+validateAndCalculate();
+}
+let globalVerdict = "";
+function validateAndCalculate() {
+let total = 0;
+for (let i = 1; i <= 10; i++) {
+let val = parseInt(document.getElementById('ind' + i).value) || 0;
+if (val < 0) val = 0;
+if (val > maxLimits[i]) val = maxLimits[i];
+document.getElementById('ind' + i).value = val;
+total += val;
+}
+document.getElementById('liveTotal').innerText = total + ' / 100';
+document.getElementById('finalScore').innerText = total;
+if (total === 0) { globalVerdict = "Заполните поля оценочных индикаторов..."; }
+else if (total >= 90) { globalVerdict = "🏆 Отлично (WorldSkills РК)"; }
+else if (total >= 75) { globalVerdict = "👍 Хорошо (Соблюдены этапы ТК)"; }
+else if (total >= 60) { globalVerdict = "⚠️ Удовлетворительно (Допущен дефект)"; }
+else { globalVerdict = "❌ Неудовлетворительно (Критический брак)"; }
+document.getElementById('feedbackOutput').innerText = globalVerdict;
+}
+let journalData = JSON.parse(localStorage.getItem('ltkJournal')) || [];
+function submitAssessment() {
+const score = document.getElementById('finalScore').innerText;
+if (score == "0") { alert("❌ Нельзя сохранить оценку в 0 баллов!"); return; }
+const now = new Date();
+const currentDate = now.toLocaleDateString('ru-RU');
+const currentTime = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+const newRecord = {
+fio: currentStudentFIO,
+group: currentStudentGroup,
+topic: activeTopicTitle,
+score: score,
+verdict: globalVerdict,
+date: currentDate,
+time: currentTime
+};
+journalData.push(newRecord);
+localStorage.setItem('ltkJournal', JSON.stringify(journalData));
+alert(🔔 Оценочный лист успешно сохранен!\n\nСтудент: ${currentStudentFIO}\nБалл: ${score}\nДата: ${currentDate}\nВремя: ${currentTime}\nДанные выгружены в кабинет преподавателя.);
+resetInputs();
+renderJournal();
+}
+function renderJournal() {
+const tbody = document.getElementById('journalBody');
+tbody.innerHTML = '';
+if (journalData.length === 0) {
+tbody.innerHTML = <tr><td colspan="7" style="text-align:center; color:#7f8c8d;">Журнал пуст. Оценки еще не выставлялись.</td></tr>;
+return;
+}
+journalData.forEach(record => {
+tbody.innerHTML += `
+${record.fio}
+${record.group}
+${record.topic}
+${record.score}
+${record.verdict}
+${record.date}
+${record.time}
+`;
+});
+}
+function toggleTeacherCabinet() {
+const password = prompt("🔐 Введите пароль доступа преподавателя:");
+if (password === "1234") {
+document.getElementById('mainLayout').style.display = 'none';
+document.getElementById('teacherCabinetLayout').style.display = 'grid';
+renderJournal();
+} else if (password !== null) {
+alert("❌ Неверный пароль доступа!");
+}
+}
+function closeTeacherCabinet() {
+document.getElementById('teacherCabinetLayout').style.display = 'none';
+document.getElementById('mainLayout').style.display = 'grid';
+}
+
+
+
+<FollowUp>
